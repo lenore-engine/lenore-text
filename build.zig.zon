@@ -1,0 +1,26 @@
+.{
+    .name = .lenore_text,
+    .fingerprint = 0x18afed2cc53562c6,
+    .version = "0.0.1",
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{
+        // Both are upstream release tarballs carrying no build.zig, which the
+        // package manager takes: a dependency's build is only run when it has
+        // one, and `Dependency.path` resolves against the fetched root either
+        // way. So the build description below is ours and there is no wrapper
+        // package between us and the sources.
+        //
+        // Pinned to the versions this host has installed, so a build that
+        // behaves differently from the distribution's can be compared against
+        // it rather than guessed at.
+        .freetype = .{
+            .url = "https://download.savannah.gnu.org/releases/freetype/freetype-2.14.3.tar.xz",
+            .hash = "N-V-__8AAJo-LAHFNfa0p0oMQqmwlBEAZMOeo03azXgrKLTT",
+        },
+        .harfbuzz = .{
+            .url = "https://github.com/harfbuzz/harfbuzz/releases/download/14.3.0/harfbuzz-14.3.0.tar.xz",
+            .hash = "N-V-__8AAIBQ_AUwLoIn6BhmUDtB5Hao0t6OnLDvqd8aU-lO",
+        },
+    },
+    .paths = .{ "build.zig", "build.zig.zon", "include", "src", "tests", "LICENSE", "AUTHORS" },
+}
