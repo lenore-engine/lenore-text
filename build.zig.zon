@@ -4,6 +4,7 @@
     .version = "0.0.1",
     .minimum_zig_version = "0.16.0",
     .dependencies = .{
+        .lenore_resources = .{ .path = "../lenore-resources" },
         // Both are upstream release tarballs carrying no build.zig, which the
         // package manager takes: a dependency's build is only run when it has
         // one, and `Dependency.path` resolves against the fetched root either
@@ -22,5 +23,5 @@
             .hash = "N-V-__8AAIBQ_AUwLoIn6BhmUDtB5Hao0t6OnLDvqd8aU-lO",
         },
     },
-    .paths = .{ "build.zig", "build.zig.zon", "include", "src", "tests", "LICENSE", "AUTHORS" },
+    .paths = .{ "build.zig", "build.zig.zon", "include", "src", "tests", "LICENSE", "AUTHORS", "NOTICE.md" },
 }

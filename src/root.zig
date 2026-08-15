@@ -1,5 +1,3 @@
-const std = @import("std");
-
 // Text shaping and glyph rasterisation.
 //
 // Two libraries, in the layering they were designed for: FreeType owns the face
@@ -7,67 +5,46 @@ const std = @import("std");
 // and positions and reads its tables through that same face. What this module
 // adds is the Zig surface over them and the vocabulary above it.
 //
-// The C surface is declared here rather than imported with `@cImport`. What the
-// module actually calls is a dozen entry points out of some hundreds, and a
-// declaration written by hand is one the compiler checks against the linker at
-// the same moment as everything else in the tree.
-
-// An opaque handle is a pointer C hands back and never lets us look inside.
-const Face = opaque {};
-const Library = opaque {};
-
-extern fn FT_Init_FreeType(library: *?*Library) c_int;
-extern fn FT_Done_FreeType(library: *Library) c_int;
-extern fn FT_Library_Version(library: *Library, major: *c_int, minor: *c_int, patch: *c_int) void;
-
-extern fn hb_version_string() [*:0]const u8;
-
-pub const Error = error{
-    // FreeType would not start. It allocates and it opens nothing, so this is
-    // out of memory or a library built against a different configuration.
-    LibraryUnavailable,
-};
-
-// What the two libraries report about themselves at run time.
+// The C surface is declared by hand rather than imported with `@cImport`. What
+// this module calls is a dozen entry points out of some hundreds, and each is
+// declared where it is used with the comment that says what it promises. What
+// no build step checks is that a declaration matches the C one: the linker
+// resolves a name and knows nothing of the types on either side of it, so a
+// wrong signature or a mistyped struct is caught by a test that calls through
+// it and by nothing else. That is what `tests/link.zig` and the sizes asserted
+// beside each borrowed struct are for.
 //
-// Read rather than assumed: this module builds them from pinned sources, and a
-// version that disagrees with the pin means something else on the link line
-// answered first.
-pub const Versions = struct {
-    freetype_major: u16,
-    freetype_minor: u16,
-    freetype_patch: u16,
-    // HarfBuzz's own string, which is its version and nothing else. Static
-    // storage inside the library, so it outlives any caller.
-    harfbuzz: [:0]const u8,
+// What this module produces it does not declare. A shaped glyph, a placement
+// and a face's metrics are `lenore-resources` declarations, so that a UI can
+// draw a run without linking two C libraries to say what one is. They are not
+// re-exported here: one name for a type is what keeps two consumers agreeing
+// about it.
 
-    pub fn format(self: Versions, writer: *std.Io.Writer) std.Io.Writer.Error!void {
-        try writer.print("freetype {d}.{d}.{d}, harfbuzz {s}", .{
-            self.freetype_major,
-            self.freetype_minor,
-            self.freetype_patch,
-            self.harfbuzz,
-        });
-    }
-};
+const atlas = @import("atlas.zig");
+const face = @import("face.zig");
+const raster = @import("raster.zig");
+const shape = @import("shape.zig");
 
-pub fn versions() Error!Versions {
-    var library: ?*Library = null;
-    if (FT_Init_FreeType(&library) != 0) return error.LibraryUnavailable;
-    // A library that started has a handle; FreeType reports failure through the
-    // return value and leaves the handle alone otherwise.
-    const started = library orelse return error.LibraryUnavailable;
-    defer _ = FT_Done_FreeType(started);
+pub const Antialias = face.Antialias;
+pub const Error = face.Error;
+pub const Face = face.Face;
+pub const FaceOptions = face.Options;
+pub const Hinting = face.Hinting;
+pub const Library = face.Library;
+pub const Versions = face.Versions;
+pub const fixedToPixels = face.fixedToPixels;
 
-    var major: c_int = 0;
-    var minor: c_int = 0;
-    var patch: c_int = 0;
-    FT_Library_Version(started, &major, &minor, &patch);
+pub const Shaper = shape.Shaper;
+pub const ShapeError = shape.Error;
+pub const advance = shape.advance;
 
-    return .{
-        .freetype_major = @intCast(major),
-        .freetype_minor = @intCast(minor),
-        .freetype_patch = @intCast(patch),
-        .harfbuzz = std.mem.span(hb_version_string()),
-    };
-}
+pub const Coverage = raster.Coverage;
+pub const RasterError = raster.Error;
+pub const render = raster.render;
+
+pub const Atlas = atlas.Atlas;
+pub const atlas_channels = atlas.channels;
+pub const AtlasBox = atlas.Box;
+pub const AtlasError = atlas.Error;
+pub const AtlasKey = atlas.Key;
+pub const AtlasSizeError = atlas.SizeError;

@@ -16,7 +16,9 @@ const testing = std.testing;
 // a looser assertion would also pass against whatever the system has installed,
 // which is the one answer this must not accept.
 test "both libraries link, and report the versions they were pinned to" {
-    const found = try text.versions();
+    var library: text.Library = try .init();
+    defer library.deinit();
+    const found = library.versions();
 
     try testing.expectEqual(@as(u16, 2), found.freetype_major);
     try testing.expectEqual(@as(u16, 14), found.freetype_minor);

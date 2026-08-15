@@ -37,9 +37,13 @@ pub fn build(b: *std.Build) void {
 
     const freetype = b.dependency("freetype", .{});
     const harfbuzz = b.dependency("harfbuzz", .{});
+    const resource = b.dependency("lenore_resources", .{ .target = target, .optimize = optimize });
 
     const mod = b.addModule("lenore-text", .{
         .root_source_file = b.path("src/root.zig"),
+        .imports = &.{
+            .{ .name = "lenore-resources", .module = resource.module("lenore-resources") },
+        },
         .target = target,
         .optimize = optimize,
     });
@@ -74,7 +78,16 @@ pub fn build(b: *std.Build) void {
         },
     });
 
+    // Ours: the shim that reads a rendered glyph out of FreeType's structs,
+    // where the header rather than a second declaration is the authority.
+    mod.addCSourceFiles(.{
+        .root = b.path("src"),
+        .files = &.{"lenore_glyph.c"},
+        .flags = &.{"-std=c11"},
+    });
+
     mod.addIncludePath(b.path("include"));
+    mod.addIncludePath(b.path("src"));
     mod.addIncludePath(freetype.path("include"));
     mod.addIncludePath(harfbuzz.path("src"));
     mod.link_libcpp = true;
@@ -82,7 +95,13 @@ pub fn build(b: *std.Build) void {
     const unit_tests = b.addTest(.{
         .root_module = b.createModule(.{
             .root_source_file = testRoot(b, "tests"),
-            .imports = &.{.{ .name = "lenore-text", .module = mod }},
+            .imports = &.{
+                .{ .name = "lenore-text", .module = mod },
+                // The suite names the vocabulary directly, as a consumer of this
+                // module does: a shaped glyph and a placement are
+                // `lenore-resources` declarations and are not re-exported here.
+                .{ .name = "lenore-resources", .module = resource.module("lenore-resources") },
+            },
             .target = target,
             .optimize = optimize,
         }),
