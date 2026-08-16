@@ -74,11 +74,15 @@ test "bytes that are not a font are refused rather than trusted" {
 }
 
 // FreeType clamps a size instead of refusing it: `FT_Set_Pixel_Sizes` in
-// `ftobjs.c` raises a zero to one and lowers anything above 0xFFFF to 0xFFFF,
-// then returns success. A face would keep a size that is not the one it was
-// opened at, and every metric read off it would be right for a size nobody
-// asked for. These are the two ends of that, and 0xFFFF itself is admitted
-// because it is the value FreeType clamps to.
+// `ftobjs.c` raises a zero to one and lowers anything at or above
+// `max_pixel_size` to it, then returns success. A face would keep a size that is
+// not the one it was opened at, and every metric read off it would be right for
+// a size nobody asked for. These are the two ends of that, and 0xFFFF itself is
+// admitted because it is the value FreeType clamps to.
+//
+// The numbers are written out rather than taken from `max_pixel_size`. What is
+// being pinned is FreeType's boundary, so a test phrased in our name for it
+// would move with that name and pass however far the two had drifted apart.
 test "a size FreeType would silently change is refused instead" {
     var library: text.Library = try .init();
     defer library.deinit();
@@ -91,4 +95,8 @@ test "a size FreeType would silently change is refused instead" {
     // Ahem's ascent is 0.8 em, so a face at the largest admitted size measures
     // it at four fifths of that size and not at four fifths of a clamp.
     try testing.expectApproxEqAbs(@as(f32, 0.8 * 0xFFFF), largest.metrics().ascent, 1);
+
+    // And the name the rest of the tree derives sizes through agrees with the
+    // boundary above, which is the part the literals cannot say.
+    try testing.expectEqual(@as(u32, 0xFFFF), text.max_pixel_size);
 }

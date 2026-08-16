@@ -33,6 +33,7 @@ pub const Hinting = face.Hinting;
 pub const Library = face.Library;
 pub const Versions = face.Versions;
 pub const fixedToPixels = face.fixedToPixels;
+pub const max_pixel_size = face.max_pixel_size;
 
 pub const Shaper = shape.Shaper;
 pub const ShapeError = shape.Error;

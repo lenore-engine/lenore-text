@@ -226,13 +226,30 @@ pub const Antialias = enum(c_int) {
     }
 };
 
+// The largest size a face may be opened at.
+//
+// FreeType's ceiling and not this module's: `FT_Set_Pixel_Sizes` lowers anything
+// at or above it to it and then reports success (`ftobjs.c`,
+// `FT_Set_Pixel_Sizes`), so a face asked for more would keep a size nothing
+// above it could tell from the one it named. `open` refuses that instead.
+//
+// Public because a caller deriving a size from a display scale has to establish
+// the range before it narrows a float into it, and a second copy of the number
+// is a second thing to keep true.
+//
+// Untyped, so that such a caller can compare it against the float it is about to
+// narrow. Zig admits no comparison between an `f32` and a `u32`, and the
+// coercion this leaves instead is exact: 65535 is well inside the 24-bit
+// mantissa an `f32` keeps integers in.
+pub const max_pixel_size = 0xFFFF;
+
 pub const Options = struct {
     // Which face of a collection. Zero is the only face of an ordinary font
     // file.
     face_index: u32 = 0,
-    // The size the face is opened at, in pixels, and the one it keeps. From
-    // one to 65535: `open` refuses the rest rather than letting FreeType clamp
-    // them into a face whose size is not the one that was asked for.
+    // The size the face is opened at, in pixels, and the one it keeps. From one
+    // to `max_pixel_size`: `open` refuses the rest rather than letting FreeType
+    // clamp them into a face whose size is not the one that was asked for.
     pixel_size: u32,
     // The outline as it was designed, unless a caller asks otherwise. Which
     // mode reads better is a judgement about a display and a size, and this
@@ -303,12 +320,12 @@ pub const Face = struct {
         // on Windows, so a file above two gigabytes or an index above two
         // billion would arrive negative there. The size is worse, because
         // FreeType does not refuse it at all: `FT_Set_Pixel_Sizes` in
-        // `ftobjs.c` raises a zero to one and lowers anything above 0xFFFF to
-        // 0xFFFF, then reports success, and the face would keep a size nothing
-        // above it could tell from the one it named.
+        // `ftobjs.c` raises a zero to one and lowers anything at or above
+        // `max_pixel_size` to it, then reports success, and the face would keep
+        // a size nothing above it could tell from the one it named.
         if (bytes.len > std.math.maxInt(c_long)) return error.FontTooLarge;
         if (options.face_index > std.math.maxInt(c_long)) return error.NoSuchFace;
-        if (options.pixel_size == 0 or options.pixel_size > 0xFFFF) return error.SizeUnavailable;
+        if (options.pixel_size == 0 or options.pixel_size > max_pixel_size) return error.SizeUnavailable;
 
         var ft: ?*FtFace = null;
         const opened = FT_New_Memory_Face(
