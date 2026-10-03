@@ -115,8 +115,8 @@ pub fn render(font: Face, glyph_index: u32, bucket: u8) Error!Coverage {
     const code = lenore_render_glyph(
         font.ft,
         glyph_index,
-        @intFromEnum(font.hinting),
-        @intFromEnum(font.antialias),
+        @backingInt(font.hinting),
+        @backingInt(font.antialias),
         font.shiftOf(bucket),
         &raw,
     );
